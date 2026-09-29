@@ -1,0 +1,4 @@
+name: gamma
+color: red
+count: 5
+note: third fixture file
