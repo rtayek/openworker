@@ -37,3 +37,27 @@
 - Net Worker A outcome: the model never read the source, fabricated the analysis,
   AND fabricated the file-write and success message. Only real tool call: list_files.
   Definitive: local qwen2.5:7b is unusable for this task in OpenWorker.
+
+## 2026-09-16 self-test rerun: honest refusal + a CONFIG gotcha (not fabrication)
+- Ran the bounded self-test (self-test/README.md) again on qwen2.5:7b via the 16k
+  launcher, interactive mode. Session be7c9d1f-b13.
+- This time qwen did NOT fabricate. audit_events show REAL attempts that all failed:
+  read_file self-test/README.md -> "not a file"; grep self-test -> 0; list_files
+  self-test/ -> "Path does not exist"; list_files . -> []. It then stopped and asked
+  the user to confirm the path instead of inventing results. (It still emitted the
+  bogus todo_write([...]) pseudo-tool as prose, but the substantive claim -- "the
+  files aren't here" -- was TRUE.) Evidence qwen does not ALWAYS fabricate.
+- ROOT CAUSE = configuration, not the model. The session workspace was the empty
+  sandbox C:\Users\ray\OpenWorker\be7c9d1f-b13; the repo was attached only as a
+  READ-ONLY extra_root ({"writable": false}). So relative paths like self-test/...
+  resolved inside the empty sandbox (not found), and even a successful read could not
+  have been followed by a write into self-test/output/ (repo not writable).
+- FIX for a real OpenWorker run: make the repo itself the PRIMARY workspace and make it
+  WRITABLE (at least self-test/), rather than sitting in a sandbox with the repo as a
+  read-only extra root. Where OpenWorker resolves this: coworker.db sessions.workspace
+  vs sessions.extra_roots. DBs live in %APPDATA%\coworker\ (coworker.db has sessions,
+  workspaces, audit_events; product's on-disk name is "coworker", not "openworker").
+- BASELINE established: Claude Code (Opus 4.8) ran the same self-test from the repo
+  workspace and PASSED -- real self-test/output/summary.md + run-report.md on disk,
+  total 23, truthful report. Confirms the fixture/task are sound; the failures are the
+  runtime/model, not the test. (output/ is gitignored -- generated per run.)

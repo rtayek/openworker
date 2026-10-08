@@ -1,0 +1,2 @@
+# Self-test run output is generated per run, not a checked-in artifact.
+self-test/output/
