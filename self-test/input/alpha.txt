@@ -1,0 +1,4 @@
+name: alpha
+color: blue
+count: 7
+note: first fixture file

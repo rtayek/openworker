@@ -1,18 +1,15 @@
 #!/bin/sh
 # run-openworker-16k.sh
 #
-# Make Ollama serve models with a 16384-token context window, then launch
-# OpenWorker. OpenWorker was driving Ollama at the 4096 default, so its agentic
-# prompt plus tool/step history overflowed and got truncated, causing the agent
-# to forget its task and loop. OLLAMA_CONTEXT_LENGTH is read by the OLLAMA
-# SERVER (not by OpenWorker), so this script restarts Ollama with the variable
-# set, then starts OpenWorker, which simply reconnects over HTTP.
+# Start OpenWorker against a fresh Ollama server using a 16384-token context.
+# The clean shutdown matters because OLLAMA_CONTEXT_LENGTH is read by the
+# Ollama server process, not by OpenWorker. If an old Ollama server survives,
+# OpenWorker can silently reconnect to the old 4096-token configuration.
 #
-# In OpenWorker after running this: pick the plain "qwen2.5:7b" model. It now
-# runs at 16k, because the server default changed.
+# In OpenWorker after running this: select the plain "qwen2.5:7b" model.
 #
-# Reverting: just restart Ollama normally (or reboot); the variable only affects
-# the server this script starts.
+# Reverting: restart Ollama normally (or reboot). The environment variable only
+# applies to the Ollama server started by this script.
 
 set -eu
 
@@ -23,20 +20,52 @@ ollamaLog="/c/Users/ray/AppData/Local/Temp/ollama-16k.log"
 
 export OLLAMA_CONTEXT_LENGTH="$ctx"
 
-echo "Stopping running OpenWorker and Ollama..."
-taskkill //F //T //IM openworker-desktop.exe >/dev/null 2>&1 || true
-taskkill //F //IM openworker-server.exe      >/dev/null 2>&1 || true
-taskkill //F //IM "ollama app.exe"           >/dev/null 2>&1 || true
-taskkill //F //IM ollama.exe                 >/dev/null 2>&1 || true
-sleep 2
+kill_image() {
+    image="$1"
+    taskkill //F //T //IM "$image" >/dev/null 2>&1 || true
+}
 
+image_running() {
+    tasklist //FI "IMAGENAME eq $1" 2>/dev/null | grep -qi "$1"
+}
+
+echo "Stopping existing OpenWorker and Ollama processes..."
+kill_image "openworker-desktop.exe"
+kill_image "openworker-server.exe"
+kill_image "ollama app.exe"
+kill_image "ollama.exe"
+
+# Give Windows a moment to finish tearing down process trees and sockets.
+i=0
+while [ "$i" -lt 20 ]; do
+    if ! image_running "openworker-desktop.exe" \
+       && ! image_running "openworker-server.exe" \
+       && ! image_running "ollama app.exe" \
+       && ! image_running "ollama.exe"; then
+        break
+    fi
+    sleep 1
+    i=$((i + 1))
+done
+
+if image_running "openworker-desktop.exe" \
+   || image_running "openworker-server.exe" \
+   || image_running "ollama app.exe" \
+   || image_running "ollama.exe"; then
+    echo "ERROR: one or more old OpenWorker/Ollama processes are still running." >&2
+    tasklist | grep -Ei 'openworker|ollama' || true
+    exit 1
+fi
+
+echo "Clean process state confirmed."
 echo "Starting Ollama with OLLAMA_CONTEXT_LENGTH=$ctx ..."
+: >"$ollamaLog"
 nohup "$ollamaExe" serve >"$ollamaLog" 2>&1 &
 
 echo "Waiting for Ollama to accept connections..."
 i=0
 while [ "$i" -lt 30 ]; do
-    if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then
+    if curl -fsS http://localhost:11434/api/tags >/dev/null 2>&1; then
         echo "Ollama is up."
         break
     fi
@@ -44,11 +73,18 @@ while [ "$i" -lt 30 ]; do
     i=$((i + 1))
 done
 
+if ! curl -fsS http://localhost:11434/api/tags >/dev/null 2>&1; then
+    echo "ERROR: Ollama did not become ready. See $ollamaLog" >&2
+    exit 1
+fi
+
 echo "Launching OpenWorker..."
 nohup "$openworkerExe" >/dev/null 2>&1 &
 
 echo ""
 echo "Done."
-echo "  OLLAMA_CONTEXT_LENGTH=$ctx   (server log: $ollamaLog)"
-echo "  In OpenWorker: select model qwen2.5:7b (now runs at ${ctx}-token context),"
-echo "  set the folder to the pinned-checkout snapshot, then send your task."
+echo "  OLLAMA_CONTEXT_LENGTH=$ctx"
+echo "  Ollama log: $ollamaLog"
+echo "  In OpenWorker: select qwen2.5:7b."
+echo "  For the current self-test, set the workspace to this openworker repo,"
+echo "  then ask it to read self-test/README.md and perform the test."
