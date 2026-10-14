@@ -1,8 +1,8 @@
 ---
 id: OW-CTX-01
 lifecycle: working
-status: active
-provenance: git-history
+status: paused
+provenance: user-supplied-runtime-evidence
 ---
 # OpenWorker Working Context
 
@@ -10,69 +10,64 @@ Updated: 2026-10-12
 
 ## Project Status
 
-**PAUSED.** The bounded OpenWorker evaluation is complete. No adoption or
-ChatMap integration decision has been made. One optional final experiment is
-defined below; otherwise this project may be archived.
+**PAUSED. Verdict: PROMISING for the bounded 14B configuration.**
+The optional final experiment is complete within the limits below.
+Ray authorized preserving the result and pausing further experiments.
+No adoption or ChatMap integration decision has been made.
 
-## Purpose of This Project
+Read `../openworker-bounded-14b-evaluation-report-2026-10-12.md` for
+configuration, session ID, artifact hashes, tool evidence and limitations.
 
-This repository preserves the OpenWorker evaluation that began inside ChatMap.
-It owns OpenWorker installation, configuration, runtime, stability, and model
-evidence. It does not own ChatMap's architecture or durable ledger.
+## Purpose and Ownership
 
-## Established Findings
+This repository owns OpenWorker evaluation evidence and runtime details.
+OpenWorker is a possible executor; ChatMap owns accepted continuity,
+provenance, history and semantic knowledge. A future adapter, if justified,
+would import evidence read-only without making ChatMap a scheduler or harness.
 
-- OpenWorker v0.2.1 exposes promising local SQLite evidence: journal entries,
-  audit events, sessions, team records, approvals, decisions, and related
-  hashes can potentially be observed without UI scraping.
-- OpenWorker is a possible executor or harness. ChatMap remains the durable
-  owner of accepted continuity, provenance, history, and semantic knowledge.
-- OpenWorker's SQLite records are candidate evidence for ChatMap, not a
-  replacement for ChatMap's ledger.
-- MCP is present as a client-side facility. No usable A2A or external recorder
-  interface was established.
-- A 4096-token Ollama context caused looping with `qwen2.5:7b`; 16384 stopped
-  the loop, but the model then fabricated analysis, a tool call, and success.
-  No trustworthy artifact was produced.
-- Voice input crashed OpenWorker reproducibly, and the Windows installer was
-  unsigned.
-
-The overall verdict is **INCONCLUSIVE**: the evidence seam is promising, but a
-reliable live task and restart-persistence path were not proved.
-
-## Ownership Boundary
-
-Execution runtimes are replaceable. OpenWorker owns its execution details;
-ChatMap owns durable continuity and provenance. A future integration, if
-justified, should be a read-only boundary adapter that imports selected
-OpenWorker evidence. ChatMap must not become OpenWorker's scheduler or harness.
-
-The full transition is recorded in
+The historical ownership transition remains in
 `handoffs/handoff-chatmap-to-openworker-ownership-transition-2026-10-12.md`.
 
-## Optional Final Experiment
+## Current Evidence
 
-Run one bounded `qwen2.5:14b` evaluation in a disposable workspace:
+- Ray ran the disposable self-test with qwen2.5:14b, Q4_K_M, a confirmed
+  16,384-token context, and interactive session mode.
+- Terminal checks confirmed real outputs: blue/7, green/11, red/5, total 23.
+- SQLite audits confirm input reads, output writes and readbacks. Four writes
+  targeted two files: creation followed by overwriting each.
+- A missing-file task received an honest blocked response grounded in an
+  audited filename search returning []. The file remained absent.
+- Ray confirmed both responses survived closing and reopening. Artifact
+  hashes matched before and after; post-reopen SQLite reads found the session,
+  audits and standing write approval (always_tool).
+- No journal_entries or team_events were recorded for the tested session.
+- Verify actual chat model selection and Ollama server context. Registration
+  in Settings and a one-time model warm-up were insufficient.
 
-1. complete one grounded read/write task and verify the resulting file hash;
-2. produce one deliberate failure or blocked task;
-3. close and reopen OpenWorker;
-4. verify preservation of the successful artifact, failure reason, decisions,
-   audit evidence, and any journal/team records; and
-5. compare the observed SQLite evidence read-only with ChatMap's existing
-   lifecycle concepts.
+## Limits and Historical Findings
 
-Do not connect email, Slack, calendar, cloud accounts, or a real project. This
-is an OpenWorker capability test, not a ChatMap integration task.
+The blocked outcome is conversational; a structured lifecycle state was not
+established. Both tasks were turns in one session. Team operation, hash-chain
+integrity, denied approvals, general reliability and a supported observer
+contract remain unproved. SQLite's undocumented schema is not a stable
+integration contract.
 
-If Ray declines this experiment, or it adds no material evidence, archive the
-project. Do not expand into additional models, connectors, orchestration, or
-production integration without a new explicit decision.
+September fabrication and workspace-configuration failures remain historical
+evidence. Earlier reports record voice crashes, an unsigned installer,
+client-side MCP and no established A2A recorder seam. Version v0.2.1 is the
+historical installed version; the live version was not independently rechecked.
+
+## Next Work
+
+None is authorized automatically. Preserve the result and pause. Additional
+models, teams, connectors, orchestration, unattended work or ChatMap
+integration require a new explicit decision.
+
+Close OpenWorker normally and stop the temporary Ollama server when finished.
+Cleanup has not been independently verified.
 
 ## Historical Evidence
 
-The dated reports and evidence files at the repository root record the original
-evaluation. They are historical evidence, not the current agenda. The
-`pinned-checkout-1000f86/` directory is a preserved ChatMap specimen; documents
-inside it belong to that snapshot and are not OpenWorker project instructions.
-
+Preserve earlier reports and snapshots unchanged. The preserved
+`pinned-checkout-1000f86/` is historical ChatMap evidence, whose documents are
+not current OpenWorker instructions.
